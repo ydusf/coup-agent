@@ -24,16 +24,25 @@ class Player:
         self._coins = value
 
     def ask_for_input(self) -> str:
-        play = input(
-            f"{self.name}'s move:\n"
-            "  [i] Take income (+1 coin)\n"
-            "  [f] Take foreign aid (+2 coins)\n"
-            "  [m] Use Duke's active (+3 coins)\n"
-            "  [s] Use Captain's active (steal 2 coins)\n"
-            "  [e] Use Ambassador's active (exchange characters)\n"
-            "  [a] Use Assassin's active (-3 coins to assassinate)\n"
-            "Your choice: "
-        )
+
+        prompt: str = f"{self.name}'s move: {self.coins} -- {self._characters[0]} -- {self._characters[1]}\n"
+        
+        prompt += "  [i] Take income (+1 coin)\n"
+        prompt += "  [f] Take foreign aid (+2 coins)\n"
+        prompt += "  [m] Use Duke's active (+3 coins)\n"
+        prompt += "  [s] Use Captain's active (steal 2 coins)\n"
+        prompt += "  [e] Use Ambassador's active (exchange characters)\n"
+
+        if self.coins >= 3:
+            prompt += "  [a] Use Assassin's active (-3 coins to assassinate)\n"
+
+        if self.coins >= 7:
+            prompt += "  [c] Call a coup (-7 coins)\n"
+
+        prompt += "Your choice: "
+
+        play = input(prompt)
+        
         return play
 
     def add_character(self, character: Character) -> None:

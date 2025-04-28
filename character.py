@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 # character            active                passive
 # ambassador  |  exchange characters |  block stealing
@@ -31,6 +32,9 @@ class Contessa(Character):
     def use_passive(self) -> None:
         pass
 
+    def __str__(self) -> str:
+        return "Contessa"
+
 class Assassin(Character):
     def __init__(self):
         super().__init__()
@@ -40,6 +44,9 @@ class Assassin(Character):
 
     def use_passive(self) -> None:
         pass
+
+    def __str__(self) -> str:
+        return "Assassin"
 
 class Duke(Character):
     def __init__(self):
@@ -51,6 +58,9 @@ class Duke(Character):
     def use_passive(self) -> None:
         pass
 
+    def __str__(self) -> str:
+        return "Duke"
+
 class Captain(Character):
     def __init__(self):
         super().__init__()
@@ -61,6 +71,9 @@ class Captain(Character):
     def use_passive(self) -> None:
         pass
 
+    def __str__(self) -> str:
+        return "Captain"
+
 class Ambassador(Character):
     def __init__(self):
         super().__init__()
@@ -70,3 +83,6 @@ class Ambassador(Character):
 
     def use_passive(self) -> None:
         pass
+
+    def __str__(self) -> str:
+        return "Ambassador"

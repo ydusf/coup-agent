@@ -59,6 +59,7 @@ class Game:
             player.coins = 2
 
     def __deal_characters__(self) -> None:
+        random.shuffle(self._characters)
         for player in self._players:
             player.add_character(self._characters.pop())
             player.add_character(self._characters.pop())
