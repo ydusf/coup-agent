@@ -33,7 +33,7 @@ class Game:
             if len(self._players) == 1:
                 self.__declare_winner__()
                 return
-            
+                        
             # game gets interesting here because we need to account for lies  
 
     def __choose_starting_player__(self) -> None:
@@ -43,7 +43,7 @@ class Game:
 
     def __deal_coins__(self) -> None:
         for player in self._players:
-            player.coins(2)
+            player.coins = 2
 
     def __declare_winner__(self):
         self._game_active = False
