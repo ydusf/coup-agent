@@ -23,35 +23,50 @@ class Character:
 
 class Contessa(Character):
     def __init__(self):
-        super().__init__(self)
+        super().__init__()
+
+    def use_active(self) -> None:
+        pass
 
     def use_passive(self) -> None:
         pass
 
 class Assassin(Character):
     def __init__(self):
-        super().__init__(self)
+        super().__init__()
+
+    def use_active(self) -> None:
+        pass
 
     def use_passive(self) -> None:
         pass
 
 class Duke(Character):
     def __init__(self):
-        super().__init__(self)
+        super().__init__()
+
+    def use_active(self) -> None:
+        pass
 
     def use_passive(self) -> None:
         pass
 
 class Captain(Character):
     def __init__(self):
-        super().__init__(self)
+        super().__init__()
+
+    def use_active(self) -> None:
+        pass
 
     def use_passive(self) -> None:
         pass
 
 class Ambassador(Character):
     def __init__(self):
-        super().__init__(self)
+        super().__init__()
+
+    def use_active(self) -> None:
+        pass
 
     def use_passive(self) -> None:
         pass
