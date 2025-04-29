@@ -40,8 +40,7 @@ class Game:
             
             # game gets interesting here because we need to account for lies
             current_player: Player = self._players[self._current_player_idx]
-            play: str = current_player.ask_for_input()
-
+            play = current_player.ask_for_action(self._players)
 
 
 
