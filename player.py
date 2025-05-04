@@ -1,15 +1,20 @@
-from character import Character
-from utils import Action
-from utils import get_action
+from __future__ import annotations
 
-from typing import List
+from character import Character
+from utils import Action, Claim, Block, GameState
+from agents import Agent
+
+import random
+from typing import List, Optional
 
 class Player:
-    def __init__(self, name: str):
+    def __init__(self, name: str, agent: Agent):
         self._coins: int = 0
         self._name: str = name
         self._characters: List[Character] = []
+        self._revealed_characters: List[Character] = []
         self._log: dict = {}
+        self._agent: Agent = agent
 
     @property
     def name(self) -> str:
@@ -19,80 +24,92 @@ class Player:
     def coins(self) -> int:
         return self._coins
     
+    @property
+    def characters(self) -> List[Character]:
+        return self._characters
+    
+    @property
+    def revealed_characters(self) -> List[Character]:
+        return self._revealed_characters
+    
     @coins.setter
     def coins(self, value: int) -> None:        
-        if value < 2:
+        if value < 0:
             raise ValueError("value must be greater than 0")
         
         self._coins = value
 
-    def ask_for_action(self, players: List[Character]) -> str:
-        prompt = f"{self.name}'s move: {self.coins} -- {self._characters[0]} -- {self._characters[1]}\n"
-        
-        prompt += "  [i] Take income (+1 coin)\n"
-        prompt += "  [f] Take foreign aid (+2 coins)\n"
-        prompt += "  [m] Use Duke's active (+3 coins)\n"
-        prompt += "  [s] Use Captain's active (steal 2 coins)\n"
-        prompt += "  [e] Use Ambassador's active (exchange characters)\n"
-
-        if self.coins >= 3:
-            prompt += "  [a] Use Assassin's active (-3 coins to assassinate)\n"
-
-        if self.coins >= 7:
-            prompt += "  [c] Call a coup (-7 coins)\n"
-
-        prompt += "Your choice: "
-
-        play = input(prompt)
-
-        self.__handle_input__(play, players)
-        
-        return play
+    def ask_to_challenge(self, instigator: str, claim: Claim, game_state: GameState) -> bool:
+        challenged: bool = self._agent.choose_to_challenge(instigator, claim, game_state)
+        if challenged:
+            print(f"{self.name} challenges {instigator} for calling {claim.action}")
+        else:
+            print(f"{self.name} does not challenge")
+        return challenged
     
-    def ask_for_response(self, action: Action) -> str:
-        prompt = f"{self.name} choose a response: {self.coins} -- {self._characters[0]} -- {self._characters[1]}\n"
-
-        if action == Action.ASSASSINATE:
-            prompt += "  [b] Block assassination\n"
-        elif action == Action.STEAL:
-            prompt += "  [bs] Block stealing\n"
+    def ask_to_block(self, instigator: str, action: Action, game_state: GameState) -> Optional[Block]:
+        legal_responses: List[Action] = [Action.NO_RESPONSE]
+        if action == Action.STEAL:
+            legal_responses.append(Action.BLOCK_STEALING)
+        elif action == Action.ASSASSINATE:
+            legal_responses.append(Action.BLOCK_ASSASSINATE)
         elif action == Action.FOREIGN_AID:
-            prompt += "  [bf] Block foreign aid\n"
+            legal_responses.append(Action.BLOCK_FOREIGN_AID)
 
-        prompt += "  [n] No response\n"
-        prompt += "Your choice: "
+        claim: Claim = self._agent.choose_to_block(legal_responses, instigator, action, game_state)
+        if claim.action != Action.NO_RESPONSE:
+            print(f"{self.name} blocks {instigator} using {action}")
+            return Block(claim=claim, instigator=self.name)
+        
+        print(f"{self.name} does not block {instigator} using {action}")
+        return None
+    
+    def ask_for_action(self, other_players: List[str], game_state: GameState) -> Claim:
+        legal_actions: List[Action] = [Action.INCOME, Action.FOREIGN_AID, Action.TAX, Action.EXCHANGE]
+        if self.coins >= 3:
+            legal_actions.append(Action.ASSASSINATE)
+        if self.coins >= 7:
+            legal_actions.append(Action.COUP)
+        if self.coins >= 10:
+            legal_actions = [Action.COUP]
 
-        play = input(prompt)
+        claim: Claim = self._agent.choose_action(legal_actions, other_players, game_state)
+        if claim.target is not None:
+            print(f"{self.name} played {claim.action} against {claim.target}")
+        else:
+            print(f"{self.name} played {claim.action}")
+        return claim
 
-        self.__handle_input__(play, [])
-
-        return play
+    def has_character(self, character_name: str) -> bool:
+        for card in self._characters:
+            if card.name == character_name:
+                return True
+        return False
 
     def add_character(self, character: Character) -> None:
         self._characters.append(character)
+    
+    def remove_character(self, game_state: GameState) -> None:
+        if len(self._characters) <= 0:
+            return
 
-    def __handle_input__(self, input: str, players: List[Character]) -> None:
-        action = get_action(input)
+        character: str = self._agent.choose_character(self._characters, game_state)
         
-        if action == Action.INCOME:
-            self.__take_income__() # nobody can block
+        for card_idx in range(len(self._characters)):
+            if self._characters[card_idx].name == character:
+                self._revealed_characters.append(self._characters[card_idx])
+                self._characters.pop(card_idx)
+                return
+            
+        assert False # the character removed must exist
 
-        if action == Action.COUP:
-            self.__coup__(players)
+    def exchange_cards(self, game_state: GameState) -> List[Character]:
+        card_indices_to_put_back: List[int] = self._agent.exchange_cards(self._characters.copy(), game_state)
+        cards_to_put_back: List[Character] = []
+        for card_idx in card_indices_to_put_back:
+            character: Character = self.characters.pop(card_idx)
+            cards_to_put_back.append(character)
 
-        if action in (Action.FOREIGN_AID, Action.ASSASSINATE, Action.EXCHANGE, Action.MONEY_MAN):
-            # ask for responses of other players
-            for player in players:
-                if self != player:
-                    player.ask_for_response(action)            
+        return cards_to_put_back
 
-    def __take_income__(self) -> None:
-        self._coins += 1
-
-    def __take_foreign_aid__(self) -> None:
-        self._coins += 2
-
-    def __coup__(self, players: List[Character]) -> None:
-        pass
-
-# need functionality to broadcast messages to the rest of the players to give them a chance to respond
+        
