@@ -46,6 +46,12 @@ class Game:
             self._goto_next_player()
             self._update_game_state()
 
+            for player in self._players:
+                log = f"{player.name}; {player.coins}"
+                for charac in player.characters:
+                    log += f" -- {charac.name}"
+                print(log)
+            
     def _handle_action(self) -> None:
         game_state: Optional[GameState] = self._get_state()
         instigator: Player = self._players[self._current_player_idx]
@@ -185,6 +191,7 @@ class Game:
 
                 target_player: Player = self._players[self._get_player_idx(claim.target)]
                 target_player.remove_character(game_state)
+                instigator.coins -= 3
                 print(f"{instigator.name} assassinates {target_player.name}")
 
             elif claim.action == Action.STEAL:
@@ -228,7 +235,7 @@ class Game:
                 coins_left = min(2, target_player.coins)
                 target_player.coins -= coins_left
                 instigator.coins += coins_left
-                print(f"{instigator.name} steals 2 coins from {target_player.name}")
+                print(f"{instigator.name} steals {coins_left} coins from {target_player.name}")
 
             elif claim.action == Action.COUP:
                 target_player: Player = self._players[self._get_player_idx(claim.target)]

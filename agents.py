@@ -1,5 +1,6 @@
 from character import Character
 from utils import Action, Claim, GameState
+from abc import abstractmethod
 
 from typing import List, Optional
 import random
@@ -7,6 +8,31 @@ import random
 class Agent:
     def __init__(self):
         pass
+
+    @abstractmethod
+    def choose_to_challenge(self, instigator: str, claim: Claim, game_state: GameState) -> bool:
+        pass
+
+    @abstractmethod
+    def choose_to_block(self, legal_responses: List[Action], instigator: str, action: Action, game_state: GameState) -> Claim:
+        pass
+
+    @abstractmethod
+    def choose_action(self, legal_actions: List[Action], other_players: List[str], game_state: GameState) -> Claim:
+        pass
+
+    @abstractmethod
+    def choose_character(self, characters: List[Character], game_state: GameState) -> str:
+        pass
+
+    @abstractmethod
+    def exchange_cards(self, available_characters: List[Character], game_state: GameState) -> List[int]:
+        pass
+
+
+class RandomAgent(Agent):
+    def __init__(self):
+        super().__init__()
 
     def choose_to_challenge(self, instigator: str, claim: Claim, game_state: GameState) -> bool:
         return random.choice([True, False])
@@ -40,4 +66,3 @@ class Agent:
             characters_to_put_back.append(character_idx)
 
         return characters_to_put_back
-
