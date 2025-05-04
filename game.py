@@ -118,7 +118,7 @@ class Game:
                     # we need to check if anyone wants to challenge
                     players_that_can_challenge: List[int] = []
                     for player_idx in range(len(self._players)):
-                        if self._players[player_idx].name == instigator.name:
+                        if self._players[player_idx].name == block.instigator:
                             continue
                         players_that_can_challenge.append(player_idx)
 
@@ -127,8 +127,11 @@ class Game:
                         success: bool = self._handle_challenge(block.instigator, challenger, block.claim)
                         if success:
                             print("Challenge succeeded")
+                        else:
+                            print("Challenge failed")
                             return
-                        print("Challenge failed")
+                    else:
+                        return # nobody challenged the block
                         
                 instigator.coins += 2
                 print(f"{instigator.name} gets foreign aid")
@@ -167,7 +170,7 @@ class Game:
                         # we need to check if anyone wants to challenge
                         players_that_can_challenge: List[int] = []
                         for player_idx in range(len(self._players)):
-                            if self._players[player_idx].name == instigator.name:
+                            if self._players[player_idx].name == block.instigator:
                                 continue
                             players_that_can_challenge.append(player_idx)
 
@@ -208,7 +211,7 @@ class Game:
                         # we need to check if anyone wants to challenge
                         players_that_can_challenge: List[int] = []
                         for player_idx in range(len(self._players)):
-                            if self._players[player_idx].name == instigator.name:
+                            if self._players[player_idx].name == block.instigator:
                                 continue
                             players_that_can_challenge.append(player_idx)
 
