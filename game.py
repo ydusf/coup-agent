@@ -7,7 +7,7 @@ import random
 
 class Game:
     def __init__(self):
-        self._characters: List[Character] = [Character("Contessa"), Character("Contessa"), Character("Contessa"),
+        self._deck: List[Character] = [Character("Contessa"), Character("Contessa"), Character("Contessa"),
                                              Character("Assassin"), Character("Assassin"), Character("Assassin"),
                                              Character("Ambassador"), Character("Ambassador"), Character("Ambassador"),
                                              Character("Captain"), Character("Captain"), Character("Captain"),
@@ -23,7 +23,7 @@ class Game:
         for player in args:
             self._players.append(player)
 
-    def start_game(self) -> None:
+    def start_game(self) -> Optional[Player]:
         if len(self._players) < 2:
             raise ValueError("game cannot start with less than 2 players")
         
@@ -40,7 +40,7 @@ class Game:
         while self._game_active:
             if len(self._players) == 1:
                 self._declare_winner()
-                return
+                return self._winner
                     
             self._handle_action()
             self._goto_next_player()
@@ -85,12 +85,12 @@ class Game:
                 
                 cards_left = len(instigator.characters)
                 for _ in range(cards_left):
-                    instigator.add_character(self._characters.pop())
+                    instigator.add_character(self._deck.pop())
 
                 cards_to_put_back: List[Character] = instigator.exchange_cards(game_state)
                 for character in cards_to_put_back:
-                    self._characters.append(character)
-                random.shuffle(self._characters)
+                    self._deck.append(character)
+                random.shuffle(self._deck)
 
                 print(f"{instigator.name} exchanges cards")
 
@@ -396,10 +396,10 @@ class Game:
             player.coins = 2
 
     def _deal_characters(self) -> None:
-        random.shuffle(self._characters)
+        random.shuffle(self._deck)
         for player in self._players:
-            player.add_character(self._characters.pop())
-            player.add_character(self._characters.pop())
+            player.add_character(self._deck.pop())
+            player.add_character(self._deck.pop())
 
     def _declare_winner(self) -> None:
         self._game_active = False

@@ -40,7 +40,7 @@ class Player:
         self._coins = value
 
     def ask_to_challenge(self, instigator: str, claim: Claim, game_state: GameState) -> bool:
-        challenged: bool = self._agent.choose_to_challenge(instigator, claim, game_state)
+        challenged: bool = self._agent.choose_to_challenge(self.name, instigator, claim, game_state)
         if challenged:
             print(f"{self.name} challenges {instigator} for calling {claim.action}")
         else:
@@ -56,7 +56,7 @@ class Player:
         elif action == Action.FOREIGN_AID:
             legal_responses.append(Action.BLOCK_FOREIGN_AID)
 
-        claim: Claim = self._agent.choose_to_block(legal_responses, instigator, action, game_state)
+        claim: Claim = self._agent.choose_to_block(self.name, legal_responses, instigator, action, game_state)
         if claim.action != Action.NO_RESPONSE:
             print(f"{self.name} blocks {instigator} using {action}")
             return Block(claim=claim, instigator=self.name)
@@ -73,7 +73,7 @@ class Player:
         if self.coins >= 10:
             legal_actions = [Action.COUP]
 
-        claim: Claim = self._agent.choose_action(legal_actions, other_players, game_state)
+        claim: Claim = self._agent.choose_action(self.name, legal_actions, other_players, game_state)
         if claim.target is not None:
             print(f"{self.name} played {claim.action} against {claim.target}")
         else:
@@ -93,7 +93,7 @@ class Player:
         if len(self._characters) <= 0:
             return
 
-        character: str = self._agent.choose_character(self._characters, game_state)
+        character: str = self._agent.choose_character(self.name, self._characters, game_state)
         
         for card_idx in range(len(self._characters)):
             if self._characters[card_idx].name == character:
@@ -104,12 +104,15 @@ class Player:
         assert False # the character removed must exist
 
     def exchange_cards(self, game_state: GameState) -> List[Character]:
-        card_indices_to_put_back: List[int] = self._agent.exchange_cards(self._characters.copy(), game_state)
+        card_indices_to_put_back: List[int] = self._agent.exchange_cards(self.name, self._characters.copy(), game_state)
         cards_to_put_back: List[Character] = []
         for card_idx in card_indices_to_put_back:
             character: Character = self.characters.pop(card_idx)
             cards_to_put_back.append(character)
 
         return cards_to_put_back
+    
+    def propogate_result(self, did_agent_win: bool) -> None:
+        self._agent.update_weights(self.name, did_agent_win)
 
         
