@@ -1,6 +1,6 @@
 from player import Player
 from character import Character
-from utils import Action, Claim, Block, GameState, PlayerState
+from utils import Action, Claim, Block, GameState, PlayerState, LogEntry
 
 from typing import List, Dict, Optional
 import random
@@ -18,6 +18,7 @@ class Game:
         self._winner: Optional[Player] = None
         self._game_state: Optional[GameState] = GameState()
         self._turn: int = 0
+        self._history: List[LogEntry] = []
 
     def enter_players(self, *args: Player) -> None:
         for player in args:
@@ -44,13 +45,12 @@ class Game:
                     
             self._handle_action()
             self._goto_next_player()
-            self._update_game_state()
 
-            for player in self._players:
-                log = f"{player.name}; {player.coins}"
-                for charac in player.characters:
-                    log += f" -- {charac.name}"
-                print(log)
+            # for player in self._players:
+            #     log = f"{player.name}; {player.coins}"
+            #     for charac in player.characters:
+            #         log += f" -- {charac.name}"
+            #     print(log)
             
     def _handle_action(self) -> None:
         game_state: Optional[GameState] = self._get_state()
@@ -87,8 +87,8 @@ class Game:
                 for _ in range(cards_left):
                     instigator.add_character(self._deck.pop())
 
-                cards_to_put_back: List[Character] = instigator.exchange_cards(len(instigator.characters) // 2, game_state)
-                for character in cards_to_put_back:
+                characters_to_put_back: List[Character] = instigator.exchange_cards(len(instigator.characters) // 2, game_state)
+                for character in characters_to_put_back:
                     self._deck.append(character)
                 random.shuffle(self._deck)
 
@@ -109,12 +109,7 @@ class Game:
             elif claim.action == Action.FOREIGN_AID:
                 block: Optional[Block] = self._check_for_block(instigator.name, claim.action, players_that_can_challenge_action)
                 if block is not None:
-                    # we need to check if anyone wants to challenge
-                    players_that_can_challenge_block: List[int] = []
-                    for player_idx in range(len(self._players)):
-                        if self._players[player_idx].name == block.instigator:
-                            continue
-                        players_that_can_challenge_block.append(player_idx)
+                    players_that_can_challenge_block: List[int] = self._get_players_that_can_challenge(block.instigator)
 
                     challenger: Optional[str] = self._check_for_challenges(block.instigator, block.claim, players_that_can_challenge_block)
                     if challenger is not None:
@@ -146,11 +141,7 @@ class Game:
                 block: Optional[Block] = self._check_for_block(instigator.name, claim.action, [self._get_player_idx(claim.target)])
                 if block is not None:
                     # we need to check if anyone wants to challenge
-                    players_that_can_challenge_block: List[int] = []
-                    for player_idx in range(len(self._players)):
-                        if self._players[player_idx].name == block.instigator:
-                            continue
-                        players_that_can_challenge_block.append(player_idx)
+                    players_that_can_challenge_block: List[int] = self._get_players_that_can_challenge(block.instigator)
 
                     challenger: Optional[str] = self._check_for_challenges(block.instigator, block.claim, players_that_can_challenge_block)
                     if challenger is not None:
@@ -180,11 +171,7 @@ class Game:
                 block: Optional[Block] = self._check_for_block(instigator.name, claim.action, [self._get_player_idx(claim.target)])
                 if block is not None:
                     # we need to check if anyone wants to challenge
-                    players_that_can_challenge_block: List[int] = []
-                    for player_idx in range(len(self._players)):
-                        if self._players[player_idx].name == block.instigator:
-                            continue
-                        players_that_can_challenge_block.append(player_idx)
+                    players_that_can_challenge_block: List[int] = self._get_players_that_can_challenge(block.instigator)
 
                     challenger: Optional[str] = self._check_for_challenges(block.instigator, block.claim, players_that_can_challenge_block)
                     if challenger is not None:
@@ -207,7 +194,14 @@ class Game:
                 instigator.coins -= 7
                 print(f"{instigator.name} couped against {target_player.name}")
                 
-
+    def _get_players_that_can_challenge(self, instigator: str):
+        players_that_can_challenge: List[int] = []
+        for player_idx in range(len(self._players)):
+            if self._players[player_idx].name == instigator:
+                continue
+            players_that_can_challenge.append(player_idx)
+        random.shuffle(players_that_can_challenge)
+        return players_that_can_challenge
 
             
     def _check_for_block(self, instigator: str, action: Action, players_allowed: List[int]) -> Optional[Block]:
@@ -275,20 +269,13 @@ class Game:
             if self._players[player_idx].name == player_name:
                 return player_idx
         return None
-    
-    def _update_game_state(self) -> None:
-        self._game_state.current_player = self._players[self._current_player_idx].name
-        self._game_state.turn_count = self._turn
-        for player in self._players:
-            self._game_state.player_states[player.name] = PlayerState(coins=player.coins,
-                                                                      revealed_characters=player.revealed_characters, 
-                                                                      in_game=len(player.revealed_characters) < 2)
 
     def _choose_starting_player(self) -> None:
         random.shuffle(self._players)
         self._current_player_idx = random.randrange(len(self._players))
 
     def _goto_next_player(self) -> None:
+        self._update_game_state()
         if len(self._players[self._current_player_idx].characters) == 0:
             del self._players[self._current_player_idx]
             if self._current_player_idx >= len(self._players):
@@ -302,6 +289,7 @@ class Game:
                 self._current_player_idx = 0
 
         self._turn += 1
+        self._update_game_state()
 
     def _deal_coins(self) -> None:
         for player in self._players:
@@ -317,7 +305,19 @@ class Game:
         self._game_active = False
         self._winner = self._players[0]
         print(f"The winner is {self._winner.name}!!!")
+        print("Final game state is:\n")
+        print(self._get_state())
 
-    def _get_perspective(player_id: int) -> dict:
-        pass
+    def _update_game_state(self) -> None:
+        self._game_state.turn_count = self._turn
+        self._game_state.current_player = self._players[self._current_player_idx].name
+        self._game_state.num_players_alive = len(self._players)
+        self._game_state.turn_order = [player.name for player in self._players]
+        for player in self._players:
+            self._game_state.player_states[player.name] = PlayerState(coins=player.coins,
+                                                                      revealed_characters=player.revealed_characters.copy(),
+                                                                      in_game=len(player.characters) > 0)
+            for character in player.revealed_characters:
+                if character not in self._game_state.revealed_characters:
+                    self._game_state.revealed_characters.append(character)
         
