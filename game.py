@@ -1,9 +1,10 @@
 from player import Player
 from character import Character
-from utils import Action, Claim, Block, GameState, PlayerState, LogEntry
+from utils import Action, Claim, Block, GameState, PlayerState, LogEntry, ActionEntry
 
 from typing import List, Dict, Optional
 import random
+import copy
 
 class Game:
     def __init__(self):
@@ -18,7 +19,8 @@ class Game:
         self._winner: Optional[Player] = None
         self._game_state: Optional[GameState] = GameState()
         self._turn: int = 0
-        self._history: List[LogEntry] = []
+        self._state_history: List[GameState] = []
+        self._action_history: List[LogEntry] = []
 
     def enter_players(self, *args: Player) -> None:
         for player in args:
@@ -36,6 +38,7 @@ class Game:
         self._deal_characters()
         self._choose_starting_player()
         self._update_game_state()
+        self._log_state_entry()
 
         # game loop
         while self._game_active:
@@ -45,7 +48,7 @@ class Game:
                     
             self._handle_action()
             self._goto_next_player()
-
+            self._log_state_entry()
             # for player in self._players:
             #     log = f"{player.name}; {player.coins}"
             #     for charac in player.characters:
@@ -260,6 +263,17 @@ class Game:
             instigator_player.remove_character(game_state)
             return True
 
+    def _log_action_entry(self, instigator: Player, action: Action, target: Player) -> None:
+        action_entry: ActionEntry = ActionEntry(instigator=instigator.name, action=action, target=target.name)
+    
+        game_state: Optional[GameState] = self._get_state()
+        if game_state is not None:
+            log_entry: LogEntry = LogEntry(self._turn, action=action_entry, game_state=game_state)
+            self._history.append(log_entry)
+
+    def _log_state_entry(self) -> None:
+        game_state_copy = copy.deepcopy(self._game_state)
+        self._state_history.append(game_state_copy)
 
     def _get_state(self) -> Optional[GameState]:
         return self._game_state

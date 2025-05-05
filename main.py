@@ -34,7 +34,6 @@ if __name__ == "__main__":
 
     # print(learning_agent)
 
-
     game = Game()
     player1 = Player(name="Sebastian", agent=RandomAgent("Sebastian"))
     player2 = Player(name="Hansel", agent=RandomAgent("Hansel"))
@@ -42,6 +41,11 @@ if __name__ == "__main__":
     player4 = Player(name="Stefan", agent=RandomAgent("Stefan"))
     player5 = Player(name="Liam", agent=RandomAgent("Liam"))
     player6 = Player(name="James", agent=RandomAgent("James"))
-
     game.enter_players(player1, player2, player3, player4, player5, player6)
+    
+    sys.stdout = open(os.devnull, 'w')
     winner: Player = game.start_game()
+    sys.stdout = sys.__stdout__
+
+    for state in game._state_history:
+        print(state)
