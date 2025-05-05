@@ -221,8 +221,6 @@ class Game:
                 return block
 
         return None
-        
-
 
     def _check_for_challenges(self, instigator: str, claim: Claim, players_that_can_challenge: List[int]) -> Optional[str]:
         game_state: Optional[GameState] = self._get_state()
@@ -235,116 +233,38 @@ class Game:
                 return self._players[player_idx].name
         return None
 
-
-
-
-
-
-
     def _handle_challenge(self, instigator: str, challenger: str, claim: Claim) -> bool:
-        game_state: Optional[GameState] = self._get_state()
-        instigator_player: Player = self._players[self._get_player_idx(instigator)]
-        challenger_player: Player = self._players[self._get_player_idx(challenger)]
-        if claim.action == Action.EXCHANGE:
-            if instigator_player.has_character("Ambassador"):
-                challenger_player.remove_character(game_state)
-                instigator_player.add_character(self._deck.pop())
-                character_to_put_back: List[Character] = instigator_player.exchange_cards(1, game_state)
-                for character in character_to_put_back:
-                    self._deck.append(character)
-                return False
-            else:
-                instigator_player.remove_character(game_state)
-                return True
-            
-        elif claim.action == Action.TAX:
-            if instigator_player.has_character("Duke"):
-                challenger_player.remove_character(game_state)
-                instigator_player.add_character(self._deck.pop())
-                character_to_put_back: List[Character] = instigator_player.exchange_cards(1, game_state)
-                for character in character_to_put_back:
-                    self._deck.append(character)
-                return False
-            else:
-                instigator_player.remove_character(game_state)
-                return True
-            
-        elif claim.action == Action.ASSASSINATE:
-            if instigator_player.has_character("Assassin"):
-                challenger_player.remove_character(game_state)
-                instigator_player.add_character(self._deck.pop())
-                character_to_put_back: List[Character] = instigator_player.exchange_cards(1, game_state)
-                for character in character_to_put_back:
-                    self._deck.append(character)
-                return False
-            else:
-                instigator_player.remove_character(game_state)
-                return True
-        
-        elif claim.action == Action.STEAL:
-            if instigator_player.has_character("Captain"):
-                challenger_player.remove_character(game_state)
-                instigator_player.add_character(self._deck.pop())
-                character_to_put_back: List[Character] = instigator_player.exchange_cards(1, game_state)
-                for character in character_to_put_back:
-                    self._deck.append(character)
-                return False
-            else:
-                instigator_player.remove_character(game_state)
-                return True
-            
-        elif claim.action == Action.BLOCK_ASSASSINATE:
-            if instigator_player.has_character("Contessa"):
-                challenger_player.remove_character(game_state)
-                instigator_player.add_character(self._deck.pop())
-                character_to_put_back: List[Character] = instigator_player.exchange_cards(1, game_state)
-                for character in character_to_put_back:
-                    self._deck.append(character)
-                return False
-            else:
-                instigator_player.remove_character(game_state)
-                return True
-            
-        elif claim.action == Action.BLOCK_STEALING:
-            if instigator_player.has_character("Captain") or instigator_player.has_character("Ambassador"):
-                challenger_player.remove_character(game_state)
-                instigator_player.add_character(self._deck.pop())
-                character_to_put_back: List[Character] = instigator_player.exchange_cards(1, game_state)
-                for character in character_to_put_back:
-                    self._deck.append(character)
-                return False
-            else:
-                instigator_player.remove_character(game_state)
-                return True
-            
-        elif claim.action == Action.BLOCK_FOREIGN_AID:
-            if instigator_player.has_character("Duke"):
-                challenger_player.remove_character(game_state)
-                instigator_player.add_character(self._deck.pop())
-                character_to_put_back: List[Character] = instigator_player.exchange_cards(1, game_state)
-                for character in character_to_put_back:
-                    self._deck.append(character)
-                return False
-            else:
-                instigator_player.remove_character(game_state)
-                return True
+        action_to_roles = { Action.EXCHANGE: ["Ambassador"],
+                            Action.TAX: ["Duke"],
+                            Action.ASSASSINATE: ["Assassin"],
+                            Action.STEAL: ["Captain"],
+                            Action.BLOCK_ASSASSINATE: ["Contessa"],
+                            Action.BLOCK_STEALING: ["Captain", "Ambassador"],
+                            Action.BLOCK_FOREIGN_AID: ["Duke"] }
+
+        roles = action_to_roles.get(claim.action)
+        if roles is not None:
+            return self._apply_challenge(challenger, instigator, roles)
 
         print(claim)
         assert False # need to implement the respective action
         
-
-        
-
-
-
-
-
-
-
-
-
-
-
+    def _apply_challenge(self, challenger: str, instigator: str, characters_claiming: List[str]) -> bool:
+        game_state: Optional[GameState] = self._get_state()
+        instigator_player: Player = self._players[self._get_player_idx(instigator)]
+        challenger_player: Player = self._players[self._get_player_idx(challenger)]
+        not_lying: bool = any(instigator_player.has_character(name) for name in characters_claiming)
+        if not_lying:
+            challenger_player.remove_character(game_state)
+            instigator_player.add_character(self._deck.pop())
+            character_to_put_back: List[Character] = instigator_player.exchange_cards(1, game_state)
+            for character in character_to_put_back:
+                self._deck.append(character)
+            random.shuffle(self._deck)
+            return False
+        else:
+            instigator_player.remove_character(game_state)
+            return True
 
 
     def _get_state(self) -> Optional[GameState]:
