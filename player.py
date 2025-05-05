@@ -65,7 +65,7 @@ class Player:
         return None
     
     def ask_for_action(self, other_players: List[str], game_state: GameState) -> Claim:
-        legal_actions: List[Action] = [Action.INCOME, Action.FOREIGN_AID, Action.TAX, Action.EXCHANGE]
+        legal_actions: List[Action] = [Action.INCOME, Action.FOREIGN_AID, Action.TAX, Action.EXCHANGE, Action.STEAL]
         if self.coins >= 3:
             legal_actions.append(Action.ASSASSINATE)
         if self.coins >= 7:
@@ -103,8 +103,8 @@ class Player:
             
         assert False # the character removed must exist
 
-    def exchange_cards(self, game_state: GameState) -> List[Character]:
-        card_indices_to_put_back: List[int] = self._agent.exchange_cards(self.name, self._characters.copy(), game_state)
+    def exchange_cards(self, num_cards_to_exchange: int, game_state: GameState) -> List[Character]:
+        card_indices_to_put_back: List[int] = self._agent.exchange_cards(self.name, num_cards_to_exchange, self._characters.copy(), game_state)
         cards_to_put_back: List[Character] = []
         for card_idx in card_indices_to_put_back:
             character: Character = self.characters.pop(card_idx)

@@ -39,7 +39,6 @@ class GameState:
     current_player: str = ""
     player_states: Dict[str, PlayerState] = field(default_factory=dict)
     turn_count: int = 0
-    legal_actions: List[Action] = field(default_factory=list)
 
     def __str__(self):
         state_lines = [f"Turn: {self.turn_count}", f"Current Player: {self.current_player}", "Player States:"]
