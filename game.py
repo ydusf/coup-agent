@@ -1,6 +1,7 @@
 from player import Player
 from character import Character
-from utils import Action, Claim, Block, GameState, PlayerState, LogEntry, ActionEntry
+from utils import Action, Claim, Block, GameState, PlayerState
+from logger import Logger
 
 from typing import List, Dict, Optional
 import random
@@ -9,18 +10,17 @@ import copy
 class Game:
     def __init__(self):
         self._deck: List[Character] = [Character("Contessa"), Character("Contessa"), Character("Contessa"),
-                                             Character("Assassin"), Character("Assassin"), Character("Assassin"),
-                                             Character("Ambassador"), Character("Ambassador"), Character("Ambassador"),
-                                             Character("Captain"), Character("Captain"), Character("Captain"),
-                                             Character("Duke"), Character("Duke"), Character("Duke")]
+                                      Character("Assassin"), Character("Assassin"), Character("Assassin"),
+                                      Character("Ambassador"), Character("Ambassador"), Character("Ambassador"),
+                                      Character("Captain"), Character("Captain"), Character("Captain"),
+                                      Character("Duke"), Character("Duke"), Character("Duke")]
         self._players: List[Player] = []
         self._current_player_idx: Optional[int] = None
         self._game_active: bool = False
         self._winner: Optional[Player] = None
         self._game_state: Optional[GameState] = GameState()
         self._turn: int = 0
-        self._state_history: List[GameState] = []
-        self._action_history: List[LogEntry] = []
+        self._logger: Logger = Logger()
 
     def enter_players(self, *args: Player) -> None:
         for player in args:
@@ -38,22 +38,19 @@ class Game:
         self._deal_characters()
         self._choose_starting_player()
         self._update_game_state()
-        self._log_state_entry()
 
         # game loop
         while self._game_active:
+            self._logger.log_turn_start(turn=self._turn, 
+                                        player_name=self._players[self._current_player_idx].name, 
+                                        game_state=self._get_state())      
+
             if len(self._players) == 1:
                 self._declare_winner()
                 return self._winner
-                    
+            
             self._handle_action()
             self._goto_next_player()
-            self._log_state_entry()
-            # for player in self._players:
-            #     log = f"{player.name}; {player.coins}"
-            #     for charac in player.characters:
-            #         log += f" -- {charac.name}"
-            #     print(log)
             
     def _handle_action(self) -> None:
         game_state: Optional[GameState] = self._get_state()
@@ -72,19 +69,35 @@ class Game:
             players_that_can_challenge_action.append(player_idx)
 
         claim: Claim = instigator.ask_for_action(other_players, game_state)
+        self._logger.log_action(
+            turn=self._turn,
+            instigator=instigator.name,
+            action=claim.action,
+            target=claim.target,
+            game_state=game_state
+        )
 
         if claim.target is None: # either income, foreign aid, tax or exchange
             if claim.action == Action.INCOME:
                 instigator.coins += 1
                 print(f"{instigator.name} gets income")
+                self._update_game_state()
+                self._logger.log_game_state(game_state=self._get_state())
+
             elif claim.action == Action.EXCHANGE:
                 challenger: Optional[str] = self._check_for_challenges(instigator.name, claim, players_that_can_challenge_action)
                 if challenger is not None:
                     success: bool = self._handle_challenge(instigator.name, challenger, claim)
+                    self._logger.log_challenge(
+                        turn=self._turn,
+                        instigator=instigator.name,
+                        challenger=challenger,
+                        action=claim.action,
+                        success=success,
+                        game_state=self._get_state()
+                    )
                     if success:
-                        print("Challenge succeeded")
                         return
-                    print("Challenge failed")
                 
                 cards_left = len(instigator.characters)
                 for _ in range(cards_left):
@@ -96,38 +109,63 @@ class Game:
                 random.shuffle(self._deck)
 
                 print(f"{instigator.name} exchanges cards")
+                self._update_game_state()
+                self._logger.log_game_state(game_state=self._get_state())
 
             elif claim.action == Action.TAX:
                 challenger: Optional[str] = self._check_for_challenges(instigator.name, claim, players_that_can_challenge_action)
                 if challenger is not None:
                     success: bool = self._handle_challenge(instigator.name, challenger, claim)
+                    self._logger.log_challenge(
+                        turn=self._turn,
+                        instigator=instigator.name,
+                        challenger=challenger,
+                        action=claim.action,
+                        success=success,
+                        game_state=self._get_state()
+                    )
                     if success:
-                        print("Challenge succeeded")
                         return
-                    print("Challenge failed")
                 
                 print(f"{instigator.name} gets tax")
                 instigator.coins += 3
+                self._update_game_state()
+                self._logger.log_game_state(game_state=self._get_state())
             
             elif claim.action == Action.FOREIGN_AID:
                 block: Optional[Block] = self._check_for_block(instigator.name, claim.action, players_that_can_challenge_action)
                 if block is not None:
+                    self._logger.log_block(
+                        turn=self._turn,
+                        instigator=instigator.name,
+                        blocker=block.instigator,
+                        action=claim.action,
+                        block_action=block.claim.action,
+                        game_state=self._get_state()
+                    )
                     players_that_can_challenge_block: List[int] = self._get_players_that_can_challenge(block.instigator)
 
                     challenger: Optional[str] = self._check_for_challenges(block.instigator, block.claim, players_that_can_challenge_block)
                     if challenger is not None:
                         success: bool = self._handle_challenge(block.instigator, challenger, block.claim)
-                        if success:
-                            print("Challenge succeeded")
-                        else:
-                            print("Challenge failed")
-                            return
+                        self._logger.log_challenge(
+                            turn=self._turn,
+                            instigator=block.instigator,
+                            challenger=challenger,
+                            action=block.claim.action,
+                            success=success,
+                            game_state=self._get_state()
+                        )
+                        if not success:
+                            return 
+  
                     else:
                         return # nobody challenged the block
                         
                 instigator.coins += 2
                 print(f"{instigator.name} gets foreign aid")
-
+                self._update_game_state()
+                self._logger.log_game_state(game_state=self._get_state())
 
         else: # either assassinating, stealing or couping
             if claim.action == Action.ASSASSINATE:
@@ -135,54 +173,94 @@ class Game:
                 challenger: Optional[str] = self._check_for_challenges(instigator.name, claim, players_that_can_challenge_action)
                 if challenger is not None:
                     success: bool = self._handle_challenge(instigator.name, challenger, claim)
+                    self._logger.log_challenge(
+                        turn=self._turn,
+                        instigator=instigator.name,
+                        challenger=challenger,
+                        action=claim.action,
+                        success=success,
+                        game_state=self._get_state()
+                    )
                     if success:
-                        print("Challenge succeeded")
                         return
-                    print("Challenge failed")
 
                 # check if target wants to block given that they didn't challenge
                 block: Optional[Block] = self._check_for_block(instigator.name, claim.action, [self._get_player_idx(claim.target)])
                 if block is not None:
+                    self._logger.log_block(
+                        turn=self._turn,
+                        instigator=instigator.name,
+                        blocker=block.instigator,
+                        action=claim.action,
+                        block_action=block.claim.action,
+                        game_state=self._get_state()
+                    )
                     # we need to check if anyone wants to challenge
                     players_that_can_challenge_block: List[int] = self._get_players_that_can_challenge(block.instigator)
 
                     challenger: Optional[str] = self._check_for_challenges(block.instigator, block.claim, players_that_can_challenge_block)
                     if challenger is not None:
                         success: bool = self._handle_challenge(block.instigator, challenger, block.claim)
-                        if success:
-                            print("Challenge succeeded; Block was unsuccessful")
-                        else:
-                            print("Challenge failed; Block was successful")
+                        self._logger.log_challenge(
+                            turn=self._turn,
+                            instigator=block.instigator,
+                            challenger=challenger,
+                            action=block.claim.action,
+                            success=success,
+                            game_state=self._get_state()
+                        )
+                        if not success:
                             return
 
                 target_player: Player = self._players[self._get_player_idx(claim.target)]
                 target_player.remove_character(game_state)
                 instigator.coins -= 3
                 print(f"{instigator.name} assassinates {target_player.name}")
+                self._update_game_state()
+                self._logger.log_game_state(game_state=self._get_state())
 
             elif claim.action == Action.STEAL:
                 # ask anyone who isn't the target or instigator if they want to challenge 
                 challenger: Optional[str] = self._check_for_challenges(instigator.name, claim, players_that_can_challenge_action)
                 if challenger is not None:
                     success: bool = self._handle_challenge(instigator.name, challenger, claim)
+                    self._logger.log_challenge(
+                        turn=self._turn,
+                        instigator=instigator.name,
+                        challenger=challenger,
+                        action=claim.action,
+                        success=success,
+                        game_state=self._get_state()
+                    )
                     if success:
-                        print("Challenge succeeded")
                         return
-                    print("Challenge failed")
 
                 # check if target wants to block given that they didn't challenge
                 block: Optional[Block] = self._check_for_block(instigator.name, claim.action, [self._get_player_idx(claim.target)])
                 if block is not None:
+                    self._logger.log_block(
+                        turn=self._turn,
+                        instigator=instigator.name,
+                        blocker=block.instigator,
+                        action=claim.action,
+                        block_action=block.claim.action,
+                        game_state=self._get_state()
+                    )
                     # we need to check if anyone wants to challenge
                     players_that_can_challenge_block: List[int] = self._get_players_that_can_challenge(block.instigator)
 
                     challenger: Optional[str] = self._check_for_challenges(block.instigator, block.claim, players_that_can_challenge_block)
                     if challenger is not None:
                         success: bool = self._handle_challenge(block.instigator, challenger, block.claim)
-                        if success:
-                            print("Challenge succeeded; Block was unsuccessful")
-                        else:
-                            print("Challenge failed; Block was successful")
+                        self._logger.log_challenge(
+                            turn=self._turn,
+                            instigator=block.instigator,
+                            challenger=challenger,
+                            action=block.claim.action,
+                            success=success,
+                            game_state=self._get_state()
+                        )
+                        if not success:
                             return
 
                 target_player: Player = self._players[self._get_player_idx(claim.target)]
@@ -190,13 +268,17 @@ class Game:
                 target_player.coins -= coins_left
                 instigator.coins += coins_left
                 print(f"{instigator.name} steals {coins_left} coins from {target_player.name}")
+                self._update_game_state()
+                self._logger.log_game_state(game_state=self._get_state())
 
             elif claim.action == Action.COUP:
                 target_player: Player = self._players[self._get_player_idx(claim.target)]
                 target_player.remove_character(game_state)
                 instigator.coins -= 7
                 print(f"{instigator.name} couped against {target_player.name}")
-                
+                self._update_game_state()
+                self._logger.log_game_state(game_state=self._get_state())
+
     def _get_players_that_can_challenge(self, instigator: str):
         players_that_can_challenge: List[int] = []
         for player_idx in range(len(self._players)):
@@ -206,7 +288,6 @@ class Game:
         random.shuffle(players_that_can_challenge)
         return players_that_can_challenge
 
-            
     def _check_for_block(self, instigator: str, action: Action, players_allowed: List[int]) -> Optional[Block]:
         game_state: Optional[GameState] = self._get_state()
         for player_idx in players_allowed:
@@ -263,20 +344,9 @@ class Game:
             instigator_player.remove_character(game_state)
             return True
 
-    def _log_action_entry(self, instigator: Player, action: Action, target: Player) -> None:
-        action_entry: ActionEntry = ActionEntry(instigator=instigator.name, action=action, target=target.name)
-    
-        game_state: Optional[GameState] = self._get_state()
-        if game_state is not None:
-            log_entry: LogEntry = LogEntry(self._turn, action=action_entry, game_state=game_state)
-            self._history.append(log_entry)
-
-    def _log_state_entry(self) -> None:
-        game_state_copy = copy.deepcopy(self._game_state)
-        self._state_history.append(game_state_copy)
-
     def _get_state(self) -> Optional[GameState]:
-        return self._game_state
+        game_state_copy: GameState = copy.deepcopy(self._game_state)
+        return game_state_copy
     
     def _get_player_idx(self, player_name: str) -> Optional[int]:
         for player_idx in range(len(self._players)):
@@ -318,9 +388,7 @@ class Game:
     def _declare_winner(self) -> None:
         self._game_active = False
         self._winner = self._players[0]
-        print(f"The winner is {self._winner.name}!!!")
-        print("Final game state is:\n")
-        print(self._get_state())
+        self._logger.log_winner(self._winner.name)   
 
     def _update_game_state(self) -> None:
         self._game_state.turn_count = self._turn
@@ -334,4 +402,3 @@ class Game:
             for character in player.revealed_characters:
                 if character not in self._game_state.revealed_characters:
                     self._game_state.revealed_characters.append(character)
-        

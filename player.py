@@ -41,43 +41,47 @@ class Player:
 
     def ask_to_challenge(self, instigator: str, claim: Claim, game_state: GameState) -> bool:
         challenged: bool = self._agent.choose_to_challenge(instigator, claim, game_state)
-        if challenged:
-            print(f"{self.name} challenges {instigator} for calling {claim.action}")
-        else:
-            print(f"{self.name} does not challenge")
         return challenged
     
     def ask_to_block(self, instigator: str, action: Action, game_state: GameState) -> Optional[Block]:
-        legal_responses: List[Action] = [Action.NO_RESPONSE]
-        if action == Action.STEAL:
-            legal_responses.append(Action.BLOCK_STEALING)
-        elif action == Action.ASSASSINATE:
-            legal_responses.append(Action.BLOCK_ASSASSINATE)
-        elif action == Action.FOREIGN_AID:
-            legal_responses.append(Action.BLOCK_FOREIGN_AID)
+        legal_responses: List[Claim] = [Claim(Action.NO_RESPONSE, None)]
 
-        claim: Claim = self._agent.choose_to_block(legal_responses, instigator, action, game_state)
+        if action == Action.STEAL:
+            legal_responses.append(Claim(Action.BLOCK_STEALING, instigator))
+        elif action == Action.ASSASSINATE:
+            legal_responses.append(Claim(Action.BLOCK_ASSASSINATE, instigator))
+        elif action == Action.FOREIGN_AID:
+            legal_responses.append(Claim(Action.BLOCK_FOREIGN_AID, instigator))
+
+        claim: Claim = self._agent.choose_to_block(legal_responses, action, game_state)
         if claim.action != Action.NO_RESPONSE:
-            print(f"{self.name} blocks {instigator} using {action}")
             return Block(claim=claim, instigator=self.name)
         
-        print(f"{self.name} does not block {instigator} using {action}")
         return None
     
     def ask_for_action(self, other_players: List[str], game_state: GameState) -> Claim:
-        legal_actions: List[Action] = [Action.INCOME, Action.FOREIGN_AID, Action.TAX, Action.EXCHANGE, Action.STEAL]
-        if self.coins >= 3:
-            legal_actions.append(Action.ASSASSINATE)
-        if self.coins >= 7:
-            legal_actions.append(Action.COUP)
-        if self.coins >= 10:
-            legal_actions = [Action.COUP]
+        legal_claims: List[Claim] = [Claim(Action.INCOME, None), 
+                                     Claim(Action.FOREIGN_AID, None), 
+                                     Claim(Action.TAX, None), 
+                                     Claim(Action.EXCHANGE, None)]
+        
+        for player_name in other_players:
+            legal_claims.append(Claim(Action.STEAL, player_name))
 
-        claim: Claim = self._agent.choose_action(legal_actions, other_players, game_state)
-        if claim.target is not None:
-            print(f"{self.name} played {claim.action} against {claim.target}")
-        else:
-            print(f"{self.name} played {claim.action}")
+        if self.coins >= 3:
+            for player_name in other_players:
+                legal_claims.append(Claim(Action.ASSASSINATE, player_name))
+
+        if self.coins >= 7:
+            for player_name in other_players:
+                legal_claims.append(Claim(Action.COUP, player_name))
+
+        if self.coins >= 10:
+            legal_claims.clear()
+            for player_name in other_players:
+                legal_claims.append(Claim(Action.COUP, player_name))
+
+        claim: Claim = self._agent.choose_action(legal_claims, game_state)
         return claim
 
     def has_character(self, character_name: str) -> bool:
@@ -104,12 +108,20 @@ class Player:
         assert False # the character removed must exist
 
     def exchange_cards(self, num_cards_to_exchange: int, game_state: GameState) -> List[Character]:
-        card_indices_to_put_back: List[int] = self._agent.exchange_cards(num_cards_to_exchange, self._characters.copy(), game_state)
+        legal_exchanges: List[str] = [character.name for character in self._characters]
+        
+        characters_to_exchange: List[str] = self._agent.exchange_cards(num_cards_to_exchange, legal_exchanges, game_state)
+        assert len(characters_to_exchange) == num_cards_to_exchange
+        
         cards_to_put_back: List[Character] = []
-        for card_idx in card_indices_to_put_back:
-            character: Character = self.characters.pop(card_idx)
-            cards_to_put_back.append(character)
+        for name in characters_to_exchange:
+            assert name in legal_exchanges
 
+            for idx, character in enumerate(self._characters):
+                if character.name == name:
+                    cards_to_put_back.append(self._characters.pop(idx))
+                    break
+        
         return cards_to_put_back
     
     def propogate_reward(self, reward: float) -> None:

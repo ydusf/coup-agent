@@ -62,7 +62,7 @@ class GameState:
         return "\n".join(state_lines)
     
 @dataclass
-class ActionEntry:
+class ActionState:
     instigator: str
     action: Action
     target: Optional[str]
@@ -74,6 +74,6 @@ class ActionEntry:
 @dataclass
 class LogEntry:
     turn: int
-    action: ActionEntry
+    action_state: ActionState
     game_state: GameState
   
