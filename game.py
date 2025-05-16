@@ -23,8 +23,14 @@ class Game:
         self._logger: Logger = Logger()
 
     def enter_players(self, *args: Player) -> None:
+        names_this_far: List[str] = []   
         for player in args:
+            if player.name in names_this_far:
+                raise ValueError("Two players have the same username")
+            
             self._players.append(player)
+            names_this_far.append(player.name)
+            
 
     def start_game(self) -> Optional[Player]:
         if len(self._players) < 2:
@@ -450,5 +456,7 @@ class Game:
             self._game_state.player_states[player.name] = PlayerState(coins=player.coins,
                                                                       revealed_characters=player.revealed_characters.copy(),
                                                                       in_game=len(player.characters) > 0)
-            for character in player.revealed_characters:
+        
+        for name, player_state in self._game_state.player_states.items():
+            for character in player_state.revealed_characters:
                 self._game_state.revealed_characters.append(character)
