@@ -1,8 +1,19 @@
-from character import Character
-
 from enum import Enum, auto
 from typing import List, Dict, Optional
 from dataclasses import dataclass, field
+
+# character            active                passive
+# ambassador  |  exchange characters |  block stealing
+# contessa    |  blocks assassinate  |       none
+# captain     |     steal 2 coins    |  block stealing
+# duke        |     take 3 coins     |  block foreign aid  
+# assassin    | pay 3 to assassinate |        none
+class Character(Enum):
+    AMBASSADOR = auto()
+    CONTESSA = auto()
+    CAPTAIN = auto()
+    DUKE = auto()
+    ASSASSIN = auto()
 
 class Action(Enum):
     INCOME = auto()
@@ -60,6 +71,12 @@ class GameState:
         revealed_characters = ", ".join(c.name for c in self.revealed_characters) or "None"
         state_lines.append(f"Revealed Characters: [{revealed_characters}]")
         return "\n".join(state_lines)
+
+@dataclass
+class PlayerPerspective:
+    game_state: GameState
+    name: str
+    hidden_characters: List[str]
     
 @dataclass
 class ActionState:
