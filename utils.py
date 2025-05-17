@@ -47,7 +47,6 @@ class PlayerState:
 
 @dataclass
 class GameState:
-    turn_count: int = 0
     current_player: str = ""
     num_players_alive: int = 0
     turn_order: List[str] = field(default_factory=list)
@@ -57,7 +56,6 @@ class GameState:
 
     def __str__(self):
         state_lines = [
-            f"Turn: {self.turn_count}",
             f"Current Player: {self.current_player}",
             f"Players Alive: {self.num_players_alive} / {len(self.player_states)}",
             "Turn Order: " + " -> ".join(self.turn_order),
@@ -90,7 +88,6 @@ class ActionState:
 
 @dataclass
 class LogEntry:
-    turn: int
     action_state: ActionState
     game_state: GameState
   

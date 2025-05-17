@@ -169,3 +169,24 @@ class RuleBasedAgent(Agent):
     
     def exchange_cards(self, num_cards_to_exchange: int, available_characters: List[Character], player_perspective: PlayerPerspective) -> List[Character]:
         return random.sample(available_characters, num_cards_to_exchange)
+    
+class LearningAgent(Agent):
+    def __init__(self):
+        super().__init__()
+
+    def choose_to_challenge(self, instigator: str, claim: Claim, player_perspective: PlayerPerspective) -> bool:
+        return random.choice([True, False])
+    
+    def choose_to_block(self, legal_responses: List[Claim], action: Action, player_perspective: PlayerPerspective) -> Optional[Claim]:
+        if not legal_responses:
+            return None # Cannot block if there are no legal responses
+        return random.choice(legal_responses)
+            
+    def choose_action(self, legal_claims: List[Claim], player_perspective: PlayerPerspective) -> Claim:
+        return random.choice(legal_claims)
+    
+    def choose_character(self, characters: List[Character], player_perspective: PlayerPerspective) -> Character:
+        return random.choice(characters)
+    
+    def exchange_cards(self, num_cards_to_exchange: int, available_characters: List[Character], player_perspective: PlayerPerspective) -> List[Character]:
+        return random.sample(available_characters, num_cards_to_exchange)
