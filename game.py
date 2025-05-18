@@ -7,15 +7,15 @@ import random
 import copy
 
 class Game:
-    def __init__(self):
+    def __init__(self) -> None:
         self._deck: List[Character] = [Character.CONTESSA, Character.CONTESSA, Character.CONTESSA,
-                                      Character.ASSASSIN, Character.ASSASSIN, Character.ASSASSIN,
-                                      Character.AMBASSADOR, Character.AMBASSADOR, Character.AMBASSADOR,
-                                      Character.CAPTAIN, Character.CAPTAIN, Character.CAPTAIN,
-                                      Character.DUKE, Character.DUKE, Character.DUKE]
+                                       Character.ASSASSIN, Character.ASSASSIN, Character.ASSASSIN,
+                                       Character.AMBASSADOR, Character.AMBASSADOR, Character.AMBASSADOR,
+                                       Character.CAPTAIN, Character.CAPTAIN, Character.CAPTAIN,
+                                       Character.DUKE, Character.DUKE, Character.DUKE]
         
         self._players: List[Player] = []
-        self._current_player_idx: Optional[int] = None
+        self._current_player_idx: int
         self._game_active: bool = False
         self._winner: Optional[Player] = None
         self._game_state: Optional[GameState] = GameState()
@@ -64,7 +64,7 @@ class Game:
 
         if claim.target is None: # either income, foreign aid, tax or exchange
             if claim.action == Action.INCOME:
-                instigator.coins += 1
+                instigator.add_coins(1)
                 print(f"{instigator.name} gets income")
 
                 instigator.propogate_reward(self._calculate_reward(1, 0, 0, 0, 0), self._get_player_perspective(instigator.name))
@@ -114,7 +114,7 @@ class Game:
                     if success:
                         return
 
-                instigator.coins += 3
+                instigator.add_coins(3)
                 print(f"{instigator.name} gets tax")
 
                 instigator.propogate_reward(self._calculate_reward(3, 0, 0, 0, 0), self._get_player_perspective(instigator.name))
@@ -150,7 +150,7 @@ class Game:
                         # might need to add something here to reward the person who successfully blocked
                         return # nobody challenged the block
                         
-                instigator.coins += 2
+                instigator.add_coins(2)
                 print(f"{instigator.name} gets foreign aid")
 
                 instigator.propogate_reward(self._calculate_reward(2, 0, 0, 0, 0), self._get_player_perspective(instigator.name))
@@ -204,7 +204,7 @@ class Game:
 
                 target_player: Player = self._players[self._get_player_idx(claim.target)]
                 target_player.remove_character(self._get_player_perspective(target_player.name))
-                instigator.coins -= 3
+                instigator.add_coins(-3)
                 print(f"{instigator.name} assassinates {target_player.name}")
 
                 instigator.propogate_reward(self._calculate_reward(-3, 0, 0, 1, 0), self._get_player_perspective(instigator.name))
@@ -258,8 +258,8 @@ class Game:
 
                 target_player: Player = self._players[self._get_player_idx(claim.target)]
                 coins_left = min(2, target_player.coins)
-                target_player.coins -= coins_left
-                instigator.coins += coins_left
+                target_player.add_coins(-coins_left)
+                instigator.add_coins(coins_left)
                 print(f"{instigator.name} steals {coins_left} coins from {target_player.name}")
 
                 instigator.propogate_reward(self._calculate_reward(coins_left, 0, 0, 0, 0), self._get_player_perspective(instigator.name))
@@ -270,7 +270,7 @@ class Game:
             elif claim.action == Action.COUP:
                 target_player: Player = self._players[self._get_player_idx(claim.target)]
                 target_player.remove_character(self._get_player_perspective(target_player.name))
-                instigator.coins -= 7
+                instigator.add_coins(-7)
                 print(f"{instigator.name} couped against {target_player.name}")
 
                 instigator.propogate_reward(self._calculate_reward(-7, 0, 0, 1, 0), self._get_player_perspective(instigator.name))
@@ -288,7 +288,6 @@ class Game:
         return players_that_can_challenge
 
     def _check_for_block(self, instigator: str, action: Action, players_allowed: List[int]) -> Optional[Block]:
-        game_state: Optional[GameState] = self.get_state()
         for player_idx in players_allowed:
             potential_blocker: Player = self._players[player_idx]
             if self._players[player_idx].name == instigator:
@@ -363,8 +362,9 @@ class Game:
 
         return total_reward
 
-    def get_state(self) -> Optional[GameState]:
-        game_state_copy: GameState = copy.deepcopy(self._game_state)
+    def get_state(self) -> GameState:
+        game_state_copy: Optional[GameState] = copy.deepcopy(self._game_state)
+        assert game_state_copy is not None
         return game_state_copy
     
     def get_player_name(self, idx: int) -> str:
@@ -383,11 +383,12 @@ class Game:
         player_perspective = PlayerPerspective(game_state, player.name, player.characters)
         return player_perspective
     
-    def _get_player_idx(self, player_name: str) -> Optional[int]:
+    def _get_player_idx(self, player_name: str) -> int:
         for player_idx in range(len(self._players)):
             if self._players[player_idx].name == player_name:
                 return player_idx
-        return None
+
+        raise ValueError(f"{player_name} does not exist")
 
     def _choose_starting_player(self) -> None:
         random.shuffle(self._players)
@@ -411,7 +412,8 @@ class Game:
 
     def _deal_coins(self) -> None:
         for player in self._players:
-            player.coins = 2
+            assert player.coins == 0
+            player.add_coins(2)
 
     def _deal_characters(self) -> None:
         random.shuffle(self._deck)
@@ -422,13 +424,13 @@ class Game:
     def declare_winner(self, logger: Logger) -> None:
         self._game_active = False
         self._winner = self._players[0]
-        self._winner.propogate_reward(10, self._get_player_perspective(self._winner.name))
-        for player in self._players:
-            if player.name != self._winner:
-                player.propogate_reward(-10, self._get_player_perspective(player.name))
+        self._winner.propogate_reward(5, self._get_player_perspective(self._winner.name))
         logger.log_winner(self._winner.name)   
 
     def _update_game_state(self) -> None:
+        if self._game_state is None:
+            raise ValueError("Why is the game state None")
+
         self._game_state.current_player = self._players[self._current_player_idx].name
         self._game_state.num_players_alive = len(self._players)
         self._game_state.turn_order = [player.name for player in self._players]

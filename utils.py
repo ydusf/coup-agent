@@ -74,20 +74,4 @@ class GameState:
 class PlayerPerspective:
     game_state: GameState
     name: str
-    hidden_characters: List[str]
-    
-@dataclass
-class ActionState:
-    instigator: str
-    action: Action
-    target: Optional[str]
-    target_coins_before: int
-    target_coins_after: int
-    target_revealed_characters_before: List[str]
-    target_revealed_characters_after: List[str]
-
-@dataclass
-class LogEntry:
-    action_state: ActionState
-    game_state: GameState
-  
+    hidden_characters: List[Character]

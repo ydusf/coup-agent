@@ -5,19 +5,21 @@ from logger import Logger
 from typing import List, Optional
 
 class UI:
-    def __init__(self, *players: Player):
+    def __init__(self, *players: Player) -> None:
         self.game = Game()
         self.logger = Logger()
-        self.players: List[Player] = players
+        self.players: List[Player] = list(players)
 
-    def start_game(self) -> Optional[Player]:
+    # next thing is to make handle_action return a list of all the people involved in the action including their decisions + rewards
+    # this will be used to train an RL agent
+    def start_game(self) -> Optional[str]:
         if len(self.players) < 2:
             raise ValueError("game cannot start with less than 2 players")
         
         if len(self.players) > 6:
             raise ValueError("game cannot start with more than 6 players")
         
-        self.game.enter_players(*self.players)        
+        self.game.enter_players(*self.players) 
         self.game.initialise_game()
 
         # game loop
@@ -31,4 +33,6 @@ class UI:
             
             self.game.handle_action(self.logger)
             self.game.goto_next_player()
+
+        return None
 
