@@ -173,8 +173,8 @@ class RuleBasedAgent(Agent):
         most_coins: int = 0
         least_revealed_cards: int = 0
 
-        influentual_player: str
-        richest_player: str
+        influentual_player: Optional[str] = None
+        richest_player: Optional[str] = None
 
         for name, player_state in game_state.player_states.items():
             if name == player_perspective.name:
@@ -188,8 +188,8 @@ class RuleBasedAgent(Agent):
                 least_revealed_cards = len(player_state.revealed_characters)
                 influentual_player = name
 
-        players_to_coup: List[Optional[str]] = [claim.target for claim in legal_claims if claim.action == Action.COUP]
-        players_to_assassinate: List[Optional[str]] = [claim.target for claim in legal_claims if claim.action == Action.ASSASSINATE]
+        players_to_coup: List[str] = [claim.target for claim in legal_claims if claim.action == Action.COUP and claim.target is not None]
+        players_to_assassinate: List[str] = [claim.target for claim in legal_claims if claim.action == Action.ASSASSINATE and claim.target is not None]
 
         if richest_player in players_to_coup:
             return Claim(Action.COUP, richest_player)

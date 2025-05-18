@@ -32,9 +32,6 @@ class Player:
         return self._revealed_characters
 
     def add_coins(self, value: int) -> None:
-        if value < 0:
-            raise ValueError("value must be greater than 0")
-
         self._coins = value
 
     def reset(self) -> None:
