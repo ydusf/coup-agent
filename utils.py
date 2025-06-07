@@ -51,7 +51,6 @@ class GameState:
     num_players_alive: int = 0
     turn_order: List[str] = field(default_factory=list)
     player_states: Dict[str, PlayerState] = field(default_factory=dict)
-    history: List[str] = field(default_factory=list)
     revealed_characters: List[Character] = field(default_factory=list)
 
     def __str__(self):
@@ -75,3 +74,11 @@ class PlayerPerspective:
     game_state: GameState
     name: str
     hidden_characters: List[Character]
+
+    def __str__(self):
+        hidden = ", ".join(c.name for c in self.hidden_characters) or "None"
+        return (
+            f"Player Perspective for '{self.name}':\n"
+            f"Hidden Characters: [{hidden}]\n"
+            f"Game State:\n{self.game_state}"
+        )

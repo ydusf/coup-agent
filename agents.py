@@ -1,7 +1,8 @@
 from utils import Action, Claim, Character, PlayerPerspective, GameState
 
-from typing import List, Optional 
+from typing import List, Optional
 from abc import abstractmethod
+from collections import defaultdict
 import random
 
 class Agent:
@@ -28,10 +29,7 @@ class Agent:
     def exchange_cards(self, num_cards_to_exchange: int, available_characters: List[Character], player_perspective: Optional[PlayerPerspective]) -> List[Character]: 
         pass
 
-    def propogate_reward(self, reward: float, next_player_perspective: Optional[PlayerPerspective]) -> None:
-        if next_player_perspective is None:
-            raise ValueError("Why is the next player perspective None")
-        
+    def propogate_reward(self, reward: float) -> None:
         self._total_reward += reward
 
 class HumanInputAgent(Agent):
@@ -218,48 +216,3 @@ class RuleBasedAgent(Agent):
             raise ValueError("Why is the player perspective None")
         
         return random.sample(available_characters, num_cards_to_exchange)
-    
-class LearningAgent(Agent):
-    def __init__(self):
-        super().__init__()
-
-    def choose_to_challenge(self, instigator: str, claim: Claim, player_perspective: Optional[PlayerPerspective]) -> bool:
-        if player_perspective is None:
-            raise ValueError("Why is the player perspective None")
-        
-        return random.choice([True, False])
-    
-    def choose_to_block(self, legal_responses: List[Claim], action: Action, player_perspective: Optional[PlayerPerspective]) -> Optional[Claim]:
-        if player_perspective is None:
-            raise ValueError("Why is the player perspective None")
-        
-        if not legal_responses:
-            return None # Cannot block if there are no legal responses
-        return random.choice(legal_responses)
-            
-    def choose_action(self, legal_claims: List[Claim], player_perspective: Optional[PlayerPerspective]) -> Claim:
-        if player_perspective is None:
-            raise ValueError("Why is the player perspective None")
-        
-        return random.choice(legal_claims)
-    
-    def choose_character(self, characters: List[Character], player_perspective: Optional[PlayerPerspective]) -> Character:
-        if player_perspective is None:
-            raise ValueError("Why is the player perspective None")
-        
-        return random.choice(characters)
-    
-    def exchange_cards(self, num_cards_to_exchange: int, available_characters: List[Character], player_perspective: Optional[PlayerPerspective]) -> List[Character]:
-        if player_perspective is None:
-            raise ValueError("Why is the player perspective None")
-
-        return random.sample(available_characters, num_cards_to_exchange)
-    
-    def propogate_reward(self, reward: float, next_player_perspective: Optional[PlayerPerspective]) -> None:
-        super().propogate_reward(reward, next_player_perspective)
-
-        # this is the entrance point to update the Q-values. 
-
-
-    
-        

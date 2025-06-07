@@ -67,7 +67,7 @@ class Game:
                 instigator.add_coins(1)
                 print(f"{instigator.name} gets income")
 
-                instigator.propogate_reward(self._calculate_reward(1, 0, 0, 0, 0), self._get_player_perspective(instigator.name))
+                instigator.propogate_reward(self._calculate_reward(1, 0, 0, 0, 0))
                 self._update_game_state()
                 logger.log_game_state(game_state=self.get_state())
 
@@ -96,7 +96,7 @@ class Game:
 
                 print(f"{instigator.name} exchanges cards")
 
-                instigator.propogate_reward(self._calculate_reward(0, 0, 0, 0, cards_left), self._get_player_perspective(instigator.name))
+                instigator.propogate_reward(self._calculate_reward(0, 0, 0, 0, cards_left))
                 self._update_game_state()
                 logger.log_game_state(game_state=self.get_state())
 
@@ -117,7 +117,7 @@ class Game:
                 instigator.add_coins(3)
                 print(f"{instigator.name} gets tax")
 
-                instigator.propogate_reward(self._calculate_reward(3, 0, 0, 0, 0), self._get_player_perspective(instigator.name))
+                instigator.propogate_reward(self._calculate_reward(3, 0, 0, 0, 0))
                 self._update_game_state()
                 logger.log_game_state(game_state=self.get_state())
             
@@ -153,7 +153,7 @@ class Game:
                 instigator.add_coins(2)
                 print(f"{instigator.name} gets foreign aid")
 
-                instigator.propogate_reward(self._calculate_reward(2, 0, 0, 0, 0), self._get_player_perspective(instigator.name))
+                instigator.propogate_reward(self._calculate_reward(2, 0, 0, 0, 0))
                 self._update_game_state()
                 logger.log_game_state(game_state=self.get_state())
 
@@ -207,8 +207,8 @@ class Game:
                 instigator.add_coins(-3)
                 print(f"{instigator.name} assassinates {target_player.name}")
 
-                instigator.propogate_reward(self._calculate_reward(-3, 0, 0, 1, 0), self._get_player_perspective(instigator.name))
-                target_player.propogate_reward(self._calculate_reward(0, 0, 1, 0, 0), self._get_player_perspective(target_player.name))
+                instigator.propogate_reward(self._calculate_reward(-3, 0, 0, 1, 0))
+                target_player.propogate_reward(self._calculate_reward(0, 0, 1, 0, 0))
                 self._update_game_state()
                 logger.log_game_state(game_state=self.get_state())
 
@@ -262,8 +262,8 @@ class Game:
                 instigator.add_coins(coins_left)
                 print(f"{instigator.name} steals {coins_left} coins from {target_player.name}")
 
-                instigator.propogate_reward(self._calculate_reward(coins_left, 0, 0, 0, 0), self._get_player_perspective(instigator.name))
-                target_player.propogate_reward(self._calculate_reward(-coins_left, 0, 0, 0, 0), self._get_player_perspective(target_player.name))
+                instigator.propogate_reward(self._calculate_reward(coins_left, 0, 0, 0, 0))
+                target_player.propogate_reward(self._calculate_reward(-coins_left, 0, 0, 0, 0))
                 self._update_game_state()
                 logger.log_game_state(game_state=self.get_state())
 
@@ -273,8 +273,8 @@ class Game:
                 instigator.add_coins(-7)
                 print(f"{instigator.name} couped against {target_player.name}")
 
-                instigator.propogate_reward(self._calculate_reward(-7, 0, 0, 1, 0), self._get_player_perspective(instigator.name))
-                target_player.propogate_reward(self._calculate_reward(0, 0, 1, 0, 0), self._get_player_perspective(target_player.name))
+                instigator.propogate_reward(self._calculate_reward(-7, 0, 0, 1, 0))
+                target_player.propogate_reward(self._calculate_reward(0, 0, 1, 0, 0))
                 self._update_game_state()
                 logger.log_game_state(game_state=self.get_state())
 
@@ -343,13 +343,13 @@ class Game:
                 self._deck.append(character)
             random.shuffle(self._deck)
 
-            instigator_player.propogate_reward(self._calculate_reward(0, 0, 0, 1, 0), self._get_player_perspective(instigator))
-            challenger_player.propogate_reward(self._calculate_reward(0, 0, 1, 0, 0), self._get_player_perspective(challenger))
+            instigator_player.propogate_reward(self._calculate_reward(0, 0, 0, 1, 0))
+            challenger_player.propogate_reward(self._calculate_reward(0, 0, 1, 0, 0))
             return False
         else:
             instigator_player.remove_character(self._get_player_perspective(instigator))
-            instigator_player.propogate_reward(self._calculate_reward(0, 0, 1, 0, 0), self._get_player_perspective(instigator))
-            challenger_player.propogate_reward(self._calculate_reward(0, 0, 0, 1, 0), self._get_player_perspective(challenger))
+            instigator_player.propogate_reward(self._calculate_reward(0, 0, 1, 0, 0))
+            challenger_player.propogate_reward(self._calculate_reward(0, 0, 0, 1, 0))
             return True
 
     def _calculate_reward(self, coins_gained: int, other_coins_lost: int, cards_lost: int, other_cards_lost: int, cards_seen: int) -> float:
@@ -424,7 +424,7 @@ class Game:
     def declare_winner(self, logger: Logger) -> None:
         self._game_active = False
         self._winner = self._players[0]
-        self._winner.propogate_reward(5, self._get_player_perspective(self._winner.name))
+        self._winner.propogate_reward(5)
         logger.log_winner(self._winner.name)   
 
     def _update_game_state(self) -> None:

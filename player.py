@@ -32,7 +32,8 @@ class Player:
         return self._revealed_characters
 
     def add_coins(self, value: int) -> None:
-        self._coins = value
+        assert(self._coins >= 0)
+        self._coins += value
 
     def reset(self) -> None:
         self._coins = 0
@@ -41,10 +42,15 @@ class Player:
         self._log.clear()
 
     def ask_to_challenge(self, instigator: str, claim: Claim, player_perspective: Optional[PlayerPerspective]) -> bool:
+        assert player_perspective is not None
+
         challenged: bool = self._agent.choose_to_challenge(instigator, claim, player_perspective)
+
         return challenged
 
     def ask_to_block(self, instigator: str, action: Action, player_perspective: Optional[PlayerPerspective]) -> Optional[Block]:
+        assert player_perspective is not None
+
         legal_responses: List[Claim] = [Claim(Action.NO_RESPONSE, None)]
 
         if action == Action.STEAL:
@@ -63,6 +69,8 @@ class Player:
         return None
 
     def ask_for_action(self, other_players: List[str], player_perspective: Optional[PlayerPerspective]) -> Claim:
+        assert player_perspective is not None
+
         legal_claims: List[Claim] = [
             Claim(Action.INCOME, None),
             Claim(Action.FOREIGN_AID, None),
@@ -111,6 +119,8 @@ class Player:
             raise AssertionError("The selected character does not exist in the player's hand.")
 
     def exchange_cards(self, num_cards_to_exchange: int, player_perspective: Optional[PlayerPerspective]) -> List[Character]:
+        assert player_perspective is not None
+
         legal_exchanges = self.characters.copy()
         characters_to_exchange = self._agent.exchange_cards(num_cards_to_exchange, legal_exchanges, player_perspective)
 
@@ -126,5 +136,5 @@ class Player:
 
         return characters_to_put_back
 
-    def propogate_reward(self, reward: float, next_player_perspective: Optional[PlayerPerspective]) -> None:
-        self._agent.propogate_reward(reward, next_player_perspective)
+    def propogate_reward(self, reward: float) -> None:
+        self._agent.propogate_reward(reward)
