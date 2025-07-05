@@ -13,7 +13,7 @@ class Game:
                                        Character.AMBASSADOR, Character.AMBASSADOR, Character.AMBASSADOR,
                                        Character.CAPTAIN, Character.CAPTAIN, Character.CAPTAIN,
                                        Character.DUKE, Character.DUKE, Character.DUKE]
-        
+
         self._players: List[Player] = []
         self._current_player_idx: int
         self._game_active: bool = False
@@ -21,11 +21,11 @@ class Game:
         self._game_state: Optional[GameState] = GameState()
 
     def enter_players(self, *args: Player) -> None:
-        names_this_far: List[str] = []   
+        names_this_far: List[str] = []
         for player in args:
             if player.name in names_this_far:
                 raise ValueError("Two players have the same username")
-            
+
             self._players.append(player)
             names_this_far.append(player.name)
 
@@ -37,7 +37,7 @@ class Game:
         self._deal_characters()
         self._choose_starting_player()
         self._update_game_state()
-            
+
     def handle_action(self, logger: Logger) -> None:
         game_state: Optional[GameState] = self.get_state()
         instigator: Player = self._players[self._current_player_idx]
@@ -84,7 +84,7 @@ class Game:
                     )
                     if success:
                         return
-                
+
                 cards_left = len(instigator.characters)
                 for _ in range(cards_left):
                     instigator.add_character(self._deck.pop())
@@ -120,7 +120,7 @@ class Game:
                 instigator.propogate_reward(self._calculate_reward(3, 0, 0, 0, 0))
                 self._update_game_state()
                 logger.log_game_state(game_state=self.get_state())
-            
+
             elif claim.action == Action.FOREIGN_AID:
                 block: Optional[Block] = self._check_for_block(instigator.name, claim.action, players_that_can_challenge_action)
                 if block is not None:
@@ -144,12 +144,12 @@ class Game:
                             game_state=self.get_state()
                         )
                         if not success:
-                            return # challenge to block failed 
-  
+                            return # challenge to block failed
+
                     else:
                         # might need to add something here to reward the person who successfully blocked
                         return # nobody challenged the block
-                        
+
                 instigator.add_coins(2)
                 print(f"{instigator.name} gets foreign aid")
 
@@ -159,7 +159,7 @@ class Game:
 
         else: # either assassinating, stealing or couping
             if claim.action == Action.ASSASSINATE:
-                # ask anyone who isn't the target or instigator if they want to challenge 
+                # ask anyone who isn't the target or instigator if they want to challenge
                 challenger: Optional[str] = self._check_for_challenges(instigator.name, claim, players_that_can_challenge_action, logger)
                 if challenger is not None:
                     success: bool = self._handle_challenge(instigator.name, challenger, claim)
@@ -197,9 +197,11 @@ class Game:
                             game_state=self.get_state()
                         )
                         if not success:
+                            instigator.add_coins(-3)
                             return # challenge to block failed
                     else:
                         # might need to add something here to reward the person who successfully blocked
+                        instigator.add_coins(-3)
                         return # nobody challenged the block
 
                 target_player: Player = self._players[self._get_player_idx(claim.target)]
@@ -213,7 +215,7 @@ class Game:
                 logger.log_game_state(game_state=self.get_state())
 
             elif claim.action == Action.STEAL:
-                # ask anyone who isn't the target or instigator if they want to challenge 
+                # ask anyone who isn't the target or instigator if they want to challenge
                 challenger: Optional[str] = self._check_for_challenges(instigator.name, claim, players_that_can_challenge_action, logger)
                 if challenger is not None:
                     success: bool = self._handle_challenge(instigator.name, challenger, claim)
@@ -309,9 +311,9 @@ class Game:
             challenged: bool = potential_challenger.ask_to_challenge(instigator, claim, self._get_player_perspective(potential_challenger.name))
             if challenged:
                 return potential_challenger.name
-            
+
             logger.log_no_challenge(instigator, potential_challenger.name, claim.action, game_state)
-            
+
         # nobody challenged
         return None
 
@@ -330,7 +332,7 @@ class Game:
 
         print(claim)
         assert False # need to implement the respective action
-        
+
     def _apply_challenge(self, challenger: str, instigator: str, characters_claiming: List[Character]) -> bool:
         instigator_player: Player = self._players[self._get_player_idx(instigator)]
         challenger_player: Player = self._players[self._get_player_idx(challenger)]
@@ -366,23 +368,23 @@ class Game:
         game_state_copy: Optional[GameState] = copy.deepcopy(self._game_state)
         assert game_state_copy is not None
         return game_state_copy
-    
+
     def get_player_name(self, idx: int) -> str:
         assert len(self._players) > idx
         return self._players[idx].name
-    
+
     def get_players_left(self) -> int:
         return len(self._players)
-    
+
     def game_is_active(self) -> bool:
         return self._game_active
-    
+
     def _get_player_perspective(self, player_name: str) -> Optional[PlayerPerspective]:
         game_state: GameState = self.get_state()
         player: Player = self._players[self._get_player_idx(player_name)]
         player_perspective = PlayerPerspective(game_state, player.name, player.characters)
         return player_perspective
-    
+
     def _get_player_idx(self, player_name: str) -> int:
         for player_idx in range(len(self._players)):
             if self._players[player_idx].name == player_name:
@@ -424,8 +426,8 @@ class Game:
     def declare_winner(self, logger: Logger) -> None:
         self._game_active = False
         self._winner = self._players[0]
-        self._winner.propogate_reward(5)
-        logger.log_winner(self._winner.name)   
+        self._winner.propogate_reward(15)
+        logger.log_winner(self._winner.name)
 
     def _update_game_state(self) -> None:
         if self._game_state is None:
@@ -439,7 +441,7 @@ class Game:
             self._game_state.player_states[player.name] = PlayerState(coins=player.coins,
                                                                       revealed_characters=player.revealed_characters.copy(),
                                                                       in_game=len(player.characters) > 0)
-        
+
         for name, player_state in self._game_state.player_states.items():
             for character in player_state.revealed_characters:
                 self._game_state.revealed_characters.append(character)

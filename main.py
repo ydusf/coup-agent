@@ -1,49 +1,28 @@
 from player import Player
-from agents import Agent, RandomAgent, HumanInputAgent
-from ui import UI
-
-from typing import List, Dict, Optional
+from agents import HumanInputAgent, RandomAgent
+from game import Game
+from logger import Logger
 
 if __name__ == "__main__":
-    winner_map: Dict[str, int] = {}
-
-    agents: List[Agent] = [
-        RandomAgent(),
-        RandomAgent(),
-        RandomAgent()
+    players = [
+        Player("Sebastian", RandomAgent()),
+        Player("Stefan", RandomAgent()),
+        Player("Yusuf", RandomAgent()),
+        Player("Hansel", HumanInputAgent())
     ]
 
-    num_episodes: int = 1000
-    for episode in range(num_episodes):
-        player1 = Player(name="Stefan", agent=agents[0])
-        player2 = Player(name="Hansel", agent=agents[1])
-        player3 = Player(name="Yusuf", agent=agents[2])
+    # Play a game
+    game = Game()
+    game.enter_players(*players)
+    game.initialise_game()
+    logger = Logger()
 
-        ui = UI(player1, player2, player3)
-        winner: Optional[str] = ui.start_game()
-        assert winner is not None
-        if winner in winner_map:
-            winner_map[winner] += 1
-        else:
-            winner_map[winner] = 1
+    while game.game_is_active():
+        game.handle_action(logger)
+        game.goto_next_player()
 
-        # for player in ui.players:
-        #     if isinstance(player._agent, LearningAgent):
-        #         player._agent.update_q_values()
-                # use total rewards to update model and then reset
+        if game.get_players_left() <= 1:
+            game.declare_winner(logger)
+            break
 
-    player1 = Player(name="Stefan", agent=agents[0])
-    player2 = Player(name="Hansel", agent=agents[1])
-    player3 = Player(name="Yusuf", agent=agents[2])
-    player4 = Player(name="Sebastian", agent=HumanInputAgent())
-
-    ui = UI(player1, player2, player3, player4)
-    winner: Optional[str] = ui.start_game()
-    assert winner is not None
-    if winner in winner_map:
-        winner_map[winner] += 1
-    else:
-        winner_map[winner] = 1
-    
-    for name, win_c in winner_map.items():
-        print(f"{name}: {win_c}")
+    print(f"Game finished! Winner: {game._winner.name if game._winner else 'No winner'}")

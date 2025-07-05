@@ -63,9 +63,11 @@ class Player:
         claim: Optional[Claim] = self._agent.choose_to_block(legal_responses, action, player_perspective)
         assert claim is not None and claim in legal_responses
 
+        self._agent.extend_trajectory(claim, legal_responses, player_perspective)
+
         if claim.action != Action.NO_RESPONSE:
             return Block(claim=claim, instigator=self.name)
-
+        
         return None
 
     def ask_for_action(self, other_players: List[str], player_perspective: Optional[PlayerPerspective]) -> Claim:
@@ -98,6 +100,8 @@ class Player:
 
         if claim not in legal_claims:
             raise ValueError(f"{claim} not in {legal_claims}")
+
+        self._agent.extend_trajectory(claim, legal_claims, player_perspective)
 
         return claim
 

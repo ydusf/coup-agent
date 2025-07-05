@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 # ambassador  |  exchange characters |  block stealing
 # contessa    |  blocks assassinate  |       none
 # captain     |     steal 2 coins    |  block stealing
-# duke        |     take 3 coins     |  block foreign aid  
+# duke        |     take 3 coins     |  block foreign aid
 # assassin    | pay 3 to assassinate |        none
 class Character(Enum):
     AMBASSADOR = auto()
@@ -29,7 +29,7 @@ class Action(Enum):
     CALL_BULLSHIT = auto()
     NO_RESPONSE = auto()
 
-@dataclass
+@dataclass(frozen=True)
 class Claim:
     action: Action
     target: Optional[str] = None

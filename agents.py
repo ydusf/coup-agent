@@ -1,13 +1,13 @@
 from utils import Action, Claim, Character, PlayerPerspective, GameState
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from abc import abstractmethod
-from collections import defaultdict
 import random
 
 class Agent:
     def __init__(self) -> None:
         self._total_reward = 0.0
+        self._trajectory: List[Tuple[Claim, List[Claim], PlayerPerspective]] = []
 
     @abstractmethod
     def choose_to_challenge(self, instigator: str, claim: Claim, player_perspective: Optional[PlayerPerspective]) -> bool:
@@ -26,11 +26,23 @@ class Agent:
         pass
 
     @abstractmethod
-    def exchange_cards(self, num_cards_to_exchange: int, available_characters: List[Character], player_perspective: Optional[PlayerPerspective]) -> List[Character]: 
+    def exchange_cards(self, num_cards_to_exchange: int, available_characters: List[Character], player_perspective: Optional[PlayerPerspective]) -> List[Character]:
         pass
 
     def propogate_reward(self, reward: float) -> None:
         self._total_reward += reward
+
+    def extend_trajectory(self, claim: Claim, legal_claims: List[Claim], player_perspective: Optional[PlayerPerspective]) -> None:
+        assert player_perspective is not None
+
+        self._trajectory.append((claim, legal_claims, player_perspective))
+
+    def get_trajectory(self):
+        return self._trajectory
+
+    def reset_agent(self):
+        self._total_reward = 0
+        self._trajectory = []
 
 class HumanInputAgent(Agent):
     def __init__(self):
@@ -39,7 +51,7 @@ class HumanInputAgent(Agent):
     def display_perspective(self, perspective: Optional[PlayerPerspective]):
         if perspective is None:
             raise ValueError("Why is the player perspective None")
-        
+
         print("\n" + "=" * 50)
         print(f"Your Name: {perspective.name}")
         print(f"Your Hidden Characters: {perspective.hidden_characters}")
@@ -49,7 +61,7 @@ class HumanInputAgent(Agent):
     def choose_to_challenge(self, instigator: str, claim: Claim, player_perspective: Optional[PlayerPerspective]) -> bool:
         if player_perspective is None:
             raise ValueError("Why is the player perspective None")
-        
+
         self.display_perspective(player_perspective)
         print(f"{instigator} is claiming: {claim}")
         choice = input("Do you want to challenge this claim? (y/n): ").strip().lower()
@@ -58,7 +70,7 @@ class HumanInputAgent(Agent):
     def choose_to_block(self, legal_responses: List[Claim], action: Action, player_perspective: Optional[PlayerPerspective]) -> Optional[Claim]:
         if player_perspective is None:
             raise ValueError("Why is the player perspective None")
-        
+
         self.display_perspective(player_perspective)
         print(f"Action against you: {action}")
         if not legal_responses:
@@ -75,7 +87,7 @@ class HumanInputAgent(Agent):
     def choose_action(self, legal_claims: List[Claim], player_perspective: Optional[PlayerPerspective]) -> Claim:
         if player_perspective is None:
             raise ValueError("Why is the player perspective None")
-        
+
         self.display_perspective(player_perspective)
         print("Your turn. Legal actions:")
         for i, claim in enumerate(legal_claims):
@@ -86,7 +98,7 @@ class HumanInputAgent(Agent):
     def choose_character(self, characters: List[Character], player_perspective: Optional[PlayerPerspective]) -> Character:
         if player_perspective is None:
             raise ValueError("Why is the player perspective None")
-        
+
         self.display_perspective(player_perspective)
         print("Choose a character to lose:")
         for i, character in enumerate(characters):
@@ -97,7 +109,7 @@ class HumanInputAgent(Agent):
     def exchange_cards(self, num_cards_to_exchange: int, available_characters: List[Character], player_perspective: Optional[PlayerPerspective]) -> List[Character]:
         if player_perspective is None:
             raise ValueError("Why is the player perspective None")
-        
+
         self.display_perspective(player_perspective)
         print(f"Exchange {num_cards_to_exchange} card(s). Available cards: {available_characters}")
         chosen = []
@@ -116,35 +128,35 @@ class RandomAgent(Agent):
     def choose_to_challenge(self, instigator: str, claim: Claim, player_perspective: Optional[PlayerPerspective]) -> bool:
         if player_perspective is None:
             raise ValueError("Why is the player perspective None")
-        
+
         return random.choice([True, False])
-    
+
     def choose_to_block(self, legal_responses: List[Claim], action: Action, player_perspective: Optional[PlayerPerspective]) -> Optional[Claim]:
         if player_perspective is None:
             raise ValueError("Why is the player perspective None")
-        
+
         if not legal_responses:
             return None # Cannot block if there are no legal responses
         return random.choice(legal_responses)
-            
+
     def choose_action(self, legal_claims: List[Claim], player_perspective: Optional[PlayerPerspective]) -> Claim:
         if player_perspective is None:
             raise ValueError("Why is the player perspective None")
-        
+
         return random.choice(legal_claims)
-    
+
     def choose_character(self, characters: List[Character], player_perspective: Optional[PlayerPerspective]) -> Character:
         if player_perspective is None:
             raise ValueError("Why is the player perspective None")
-        
+
         return random.choice(characters)
-    
+
     def exchange_cards(self, num_cards_to_exchange: int, available_characters: List[Character], player_perspective: Optional[PlayerPerspective]) -> List[Character]:
         if player_perspective is None:
             raise ValueError("Why is the player perspective None")
-        
+
         return random.sample(available_characters, num_cards_to_exchange)
-        
+
 class RuleBasedAgent(Agent):
     def __init__(self):
         super().__init__()
@@ -152,13 +164,13 @@ class RuleBasedAgent(Agent):
     def choose_to_challenge(self, instigator: str, claim: Claim, player_perspective: Optional[PlayerPerspective]) -> bool:
         if player_perspective is None:
             raise ValueError("Why is the player perspective None")
-        
+
         return random.choice([True, False])
-    
+
     def choose_to_block(self, legal_responses: List[Claim], action: Action, player_perspective: Optional[PlayerPerspective]) -> Optional[Claim]:
         if player_perspective is None:
             raise ValueError("Why is the player perspective None")
-        
+
         if not legal_responses:
             return None
         return random.choice(legal_responses)
@@ -166,7 +178,7 @@ class RuleBasedAgent(Agent):
     def choose_action(self, legal_claims: List[Claim], player_perspective: Optional[PlayerPerspective]) -> Claim:
         if player_perspective is None:
             raise ValueError("Why is the player perspective None")
-        
+
         game_state: GameState = player_perspective.game_state
         most_coins: int = 0
         least_revealed_cards: int = 0
@@ -202,17 +214,17 @@ class RuleBasedAgent(Agent):
                 return Claim(Action.ASSASSINATE, influentual_player)
             elif richest_player in players_to_assassinate:
                 return Claim(Action.ASSASSINATE, richest_player)
-    
+
         return random.choice(legal_claims) # backup incase heuristic falls flat
-    
+
     def choose_character(self, characters: List[Character], player_perspective: Optional[PlayerPerspective]) -> Character:
         if player_perspective is None:
             raise ValueError("Why is the player perspective None")
-        
+
         return random.choice(characters)
-    
+
     def exchange_cards(self, num_cards_to_exchange: int, available_characters: List[Character], player_perspective: Optional[PlayerPerspective]) -> List[Character]:
         if player_perspective is None:
             raise ValueError("Why is the player perspective None")
-        
+
         return random.sample(available_characters, num_cards_to_exchange)
